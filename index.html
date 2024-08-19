@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>CosyAudio: Improving Audio Generation with Confidence Scores and Synthetic Captions</title>
+  <meta name="generator" content="Jekyll v3.9.0">
+  <meta property="og:title" content="TODO: title">
+  <meta property="og:locale" content="en_US">
+  <meta name="twitter:card" content="summary">
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#157878">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .image-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .image-box {
+      flex: 1;
+      text-align: center;
+      margin: 0 10px;
+    }
+  </style>
+</head>
+
+<body data-new-gr-c-s-check-loaded="14.1001.0" data-gr-ext-installed="">
+  <section class="page-header">
+
+
+  </section>
+
+  <section class="main-content">
+    <h1 id="">
+      <center>CosyAudio: Improving Audio Generation with Confidence Scores and Synthetic Captions</center>
+    </h1>
+
+
+    <h2>0. Contents</h2>
+    <ol>
+      <li><a href="#abstract">Abstract</a></li>
+      <li><a href="#caption">Automated Audio Captioning</a></li>
+      <li><a href="#synthesis1">Audio Generation in AudioCaps</a></li>
+      <li><a href="#synthesis2">Audio Generation in MACS</a></li>
+      <li><a href="#synthesis3">Seamless Audio Generation from Any Text Input</a></li>
+      </li>
+
+    </ol>
+
+    <br><br>
+    <h2 id="abstract">1. Abstract<a name="abstract"></a></h2>
+    <p> Text-to-Audio (TTA), a burgeoning AIGC application designed to generate audio from natural language description.
+      Despite growing interest, the development of robust TTA models is hindered by the scarcity of well-labeled data.
+      Besides, the noisy and inaccurate captions in large-scale, weakly labeled corpora impede the creation of
+      high-quality TTA models. To address these challenges, we introduce CosyAudio, a novel framework to leverage
+      confidence scores and synthetic captions to improve audio generation. Specifically, CosyAudio consists of two main
+      components: AudioCapTeller and an audio generator. AudioCapTeller is capable of generating audio descriptions and
+      obtaining confidence scores to assess the quality of synthetic captions. After initial training with well-labeled
+      data, AudioCapTeller's assessment capabilities are leveraged on large-scale datasets to perform high-quality
+      filtering and reinforcement learning to further improve the capability of AudioCapTeller. Additionally, the
+      trained AudioCapTeller improves caption quality by automatically generating new captions and
+      comparing them with original ones. The confidence scores from AudioCapTeller are also integrated into the audio
+      generator to facilitate quality-aware audio production. Extensive experiments conducted on open-source corpora
+      demonstrate that CosyAudio achieves more robust performance in automated audio captioning, generates
+      higher-quality audio, and generalizes well.
+    </p>
+
+    <br><br>
+    <div class="image-container">
+      <div class="image-box">
+        <img src="fig/CosyAudio.png" width="40%" alt="Overview of the proposed CosyAudio">
+        <p>Figure 1: Overview of the proposed UniStyle</p>
+      </div>
+    </div>
+    <br><br>
+    <h2>2. Automated Audio Captioning<a name="caption"></a></h2>
+    <h3>We showcase the effectiveness of caption refinement by comparing original and synthetic captions.</h3>
+    <table class="tg">
+      <thead>
+        <tr>
+          <th class="tg-0lax">Input Audio</th>
+          <th class="tg-0lax">Original Caption</th>
+          <th class="tg-0lax">Synthetic Caption</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="text-align: left"><audio src="samples/Part2/YE-nunSOWtMs_01.wav" controls="" preload=""></audio>
+          <td class="tg-0lax">Vehicles pass by on an urban street.
+          </td>
+          <td class="tg-0lax">sirens blare as footsteps are heard and a car honks.</td>
+        </tr>
+        <tr>
+          <td style="text-align: left"><audio src="samples/Part2/07066055_01.wav" controls="" preload=""></audio>
+          <td class="tg-0lax">Waste gases are burning</td>
+          <td class="tg-0lax">an aircraft is taking off. there is an aircraft engine in the background.</td>
+        </tr>
+        <tr>
+          <td style="text-align: left"><audio src="samples/Part2/07058161_01.wav" controls="" preload=""></audio>
+          <td class="tg-0lax">Sounds are being heard across a band.</td>
+          <td class="tg-0lax">some short audio clips that are recorded with a cassette recorder in the office.</td>
+        </tr>
+        <tr>
+          <td style="text-align: left"><audio src="samples/Part2/100057_01.wav" controls="" preload=""></audio>
+          <td class="tg-0lax">Recorded Stereo within a cheap Moto G cellphone.
+          </td>
+          <td class="tg-0lax">ambience of the dawn chorus of the great tit.</td>
+        </tr>
+        <tr>
+          <td style="text-align: left"><audio src="samples/Part2/10013_01.wav" controls="" preload=""></audio>
+          <td class="tg-0lax">this sound is a remix of freesounds created by andrew duke, freed, freed.
+          </td>
+          <td class="tg-0lax">an eerie bell like sound which can be used for a horror game or for an alien game.</td>
+        </tr>
+        <tr>
+          <td style="text-align: left"><audio src="samples/Part2/100525_01.wav" controls="" preload=""></audio>
+          <td class="tg-0lax">Paisaje sonoro del Campus de la Universidad Europea de Madrid.
+          </td>
+          <td class="tg-0lax">me making a little whistling noise on a cheap mic.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>3. Audio Generation in AudioCaps<a name="synthesis1"></a></h2>
+    <h3>We conduct audio generation in AudioCaps, a homologous test set.</h3>
+    <table>
+      <thead>
+        <tr>
+          <th style="text-align: center"><strong>Ground Truth</strong></th>
+          <th style="text-align: center"><strong>AudioLDM 2</strong></th>
+          <th style="text-align: center"><strong>Make-An-Audio 2</strong></th>
+          <th style="text-align: center"><strong>TANGO</strong></th>
+          <th style="text-align: center"><strong>TANGO 2</strong></th>
+          <th style="text-align: center"><strong>CosyAudio</strong></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="text-align: left" colspan=6>Text description: A large explosion and a heartbeat, a person speaks.
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left"><audio src="samples/part3 & part4/gt/audiocaps/14808.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/audioldm2/audiocaps/14808.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/makeanaudio2/audiocaps/14808.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango/audiocaps/14808.wav" controls=""
+              preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango2/audiocaps/14808.wav" controls=""
+              preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/cosyaudio/audiocaps/14808.wav" controls=""
+              preload=""></audio>
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left" colspan=6>Text description: Firecrackers popping as a crowd of people cheer and
+            whistle.
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left"><audio src="samples/part3 & part4/gt/audiocaps/103379.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/audioldm2/audiocaps/103379.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/makeanaudio2/audiocaps/103379.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango/audiocaps/103379.wav" controls=""
+              preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango2/audiocaps/103379.wav" controls=""
+              preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/cosyaudio/audiocaps/103379.wav" controls=""
+              preload=""></audio>
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left" colspan=6>Text description: An engine rumbles loudly, then an air horn honk three
+            times.
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left"><audio src="samples/part3 & part4/gt/audiocaps/103546.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/audioldm2/audiocaps/103546.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/makeanaudio2/audiocaps/103546.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango/audiocaps/103546.wav" controls=""
+              preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango2/audiocaps/103546.wav" controls=""
+              preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/cosyaudio/audiocaps/103546.wav" controls=""
+              preload=""></audio>
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left" colspan=6>Text description: Thunder and a gentle rain.
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left"><audio src="samples/part3 & part4/gt/audiocaps/103938.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/audioldm2/audiocaps/103938.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/makeanaudio2/audiocaps/103938.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango/audiocaps/103938.wav" controls=""
+              preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango2/audiocaps/103938.wav" controls=""
+              preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/cosyaudio/audiocaps/103938.wav" controls=""
+              preload=""></audio>
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left" colspan=6>Text description: Ocean waves crashing and water splashing as wind
+            blows into a microphone followed by a man talking.
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left"><audio src="samples/part3 & part4/gt/audiocaps/106454.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/audioldm2/audiocaps/106454.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/makeanaudio2/audiocaps/106454.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango/audiocaps/106454.wav" controls=""
+              preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango2/audiocaps/106454.wav" controls=""
+              preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/cosyaudio/audiocaps/106454.wav" controls=""
+              preload=""></audio>
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left" colspan=6>Text description: A car is passing by with leaves rustling.
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left"><audio src="samples/part3 & part4/gt/audiocaps/106715.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/audioldm2/audiocaps/106715.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/makeanaudio2/audiocaps/106715.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango/audiocaps/106715.wav" controls=""
+              preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango2/audiocaps/106715.wav" controls=""
+              preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/cosyaudio/audiocaps/106715.wav" controls=""
+              preload=""></audio>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>4. Audio Generation in MACS<a name="synthesis2"></a></h2>
+    <h3>We conduct audio generation in MACS, a non-homologous test set.</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="text-align: center"><strong>Ground Truth</strong></th>
+          <th style="text-align: center"><strong>AudioLDM 2</strong></th>
+          <th style="text-align: center"><strong>Make-An-Audio 2</strong></th>
+          <th style="text-align: center"><strong>TANGO</strong></th>
+          <th style="text-align: center"><strong>TANGO 2</strong></th>
+          <th style="text-align: center"><strong>CosyAudio</strong></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="text-align: left" colspan=6>Text description: the sound of approaching footsteps adults talking.
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left"><audio src="samples/part3 & part4/gt/macs/airport-paris-7-311-a.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/audioldm2/macs/airport-paris-7-311-a.wav"
+              controls="" preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/makeanaudio2/macs/airport-paris-7-311-a.wav"
+              controls="" preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango/macs/airport-paris-7-311-a.wav"
+              controls="" preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango2/macs/airport-paris-7-311-a.wav"
+              controls="" preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/cosyaudio/macs/airport-paris-7-311-a.wav"
+              controls="" preload=""></audio>
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left" colspan=6>Text description: adults talking and baby crying.
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left"><audio src="samples/part3 & part4/gt/macs/airport-stockholm-207-6299-a.wav"
+              controls="" preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio
+              src="samples/part3 & part4/audioldm2/macs/airport-stockholm-207-6299-a.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio
+              src="samples/part3 & part4/makeanaudio2/macs/airport-stockholm-207-6299-a.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango/macs/airport-stockholm-207-6299-a.wav"
+              controls="" preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango2/macs/airport-stockholm-207-6299-a.wav"
+              controls="" preload=""></audio>
+          <td style="text-align: left"><audio
+              src="samples/part3 & part4/cosyaudio/macs/airport-stockholm-207-6299-a.wav" controls=""
+              preload=""></audio>
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left" colspan=6>Text description: adults speaking in english their footsteps are heard
+            and a police siren in the background.
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left"><audio src="samples/part3 & part4/gt/macs/park-london-243-7242-a.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/audioldm2/macs/park-london-243-7242-a.wav"
+              controls="" preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/makeanaudio2/macs/park-london-243-7242-a.wav"
+              controls="" preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango/macs/park-london-243-7242-a.wav"
+              controls="" preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango2/macs/park-london-243-7242-a.wav"
+              controls="" preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/cosyaudio/macs/park-london-243-7242-a.wav"
+              controls="" preload=""></audio>
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left" colspan=6>Text description: water falling into a puddle.
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left"><audio src="samples/part3 & part4/gt/macs/park-prague-1185-44590-a.wav"
+              controls="" preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/audioldm2/macs/park-prague-1185-44590-a.wav"
+              controls="" preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/makeanaudio2/macs/park-prague-1185-44590-a.wav"
+              controls="" preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango/macs/park-prague-1185-44590-a.wav"
+              controls="" preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango2/macs/park-prague-1185-44590-a.wav"
+              controls="" preload=""></audio>
+          <td style="text-align: left"><audio src="samples/part3 & part4/cosyaudio/macs/park-prague-1185-44590-a.wav"
+              controls="" preload=""></audio>
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left" colspan=6>Text description: a moped passes by pretty near noises in the
+            background.
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left"><audio src="samples/part3 & part4/gt/macs/public_square-lisbon-1068-40116-a.wav"
+              controls="" preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio
+              src="samples/part3 & part4/audioldm2/macs/public_square-lisbon-1068-40116-a.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio
+              src="samples/part3 & part4/makeanaudio2/macs/public_square-lisbon-1068-40116-a.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio
+              src="samples/part3 & part4/tango/macs/public_square-lisbon-1068-40116-a.wav" controls=""
+              preload=""></audio>
+          <td style="text-align: left"><audio
+              src="samples/part3 & part4/tango2/macs/public_square-lisbon-1068-40116-a.wav" controls=""
+              preload=""></audio>
+          <td style="text-align: left"><audio
+              src="samples/part3 & part4/cosyaudio/macs/public_square-lisbon-1068-40116-a.wav" controls=""
+              preload=""></audio>
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left" colspan=6>Text description: adults talking while a church bell is rung far away.
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left"><audio src="samples/part3 & part4/gt/macs/public_square-london-113-3272-a.wav"
+              controls="" preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio
+              src="samples/part3 & part4/audioldm2/macs/public_square-london-113-3272-a.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio
+              src="samples/part3 & part4/makeanaudio2/macs/public_square-london-113-3272-a.wav" controls=""
+              preload=""></audio>
+          </td>
+          <td style="text-align: left"><audio src="samples/part3 & part4/tango/macs/public_square-london-113-3272-a.wav"
+              controls="" preload=""></audio>
+          <td style="text-align: left"><audio
+              src="samples/part3 & part4/tango2/macs/public_square-london-113-3272-a.wav" controls=""
+              preload=""></audio>
+          <td style="text-align: left"><audio
+              src="samples/part3 & part4/cosyaudio/macs/public_square-london-113-3272-a.wav" controls=""
+              preload=""></audio>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>5. Seamless Audio Generation from Any Text Input<a name="synthesis3"></a></h2>
+    <h3>We conduct zero-shot audio generation, with captions produced by ChatGPT.</h3>
+    <table class="tg">
+      <thead>
+        <tr>
+          <th class="tg-0lax">Input Caption</th>
+          <th class="tg-0lax">CosyAudio</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="tg-0lax">A gentle stream flowing through a forest, with birds chirping in the background.</td>
+          <td style="text-align: left"><audio src="samples/Part5/1.wav" controls="" preload=""></audio>
+        </tr>
+        <tr>
+          <td class="tg-0lax">Crowded subway station with trains arriving and departing, and people hurrying by.
+          </td>
+          <td style="text-align: left"><audio src="samples/Part5/2.wav" controls="" preload=""></audio>
+        </tr>
+        <tr>
+          <td class="tg-0lax">A cozy fireplace crackling in a quiet room, with the sound of a gentle breeze outside.
+          </td>
+          <td style="text-align: left"><audio src="samples/Part5/3.wav" controls="" preload=""></audio>
+        </tr>
+        <tr>
+          <td class="tg-0lax">A soccer match with the crowd cheering and players shouting instructions.
+          </td>
+          <td style="text-align: left"><audio src="samples/Part5/4.wav" controls="" preload=""></audio>
+        </tr>
+        <tr>
+          <td class="tg-0lax">A peaceful night in the countryside with crickets chirping and an owl hooting.
+          </td>
+          <td style="text-align: left"><audio src="samples/Part5/5.wav" controls="" preload=""></audio>
+        </tr>
+        <tr>
+          <td class="tg-0lax">A carnival with laughter, music, and the sounds of rides in the background.
+          </td>
+          <td style="text-align: left"><audio src="samples/Part5/6.wav" controls="" preload=""></audio>
+        </tr>
+      </tbody>
+    </table>
+
+    <br><br>
+
+
+    <footer class="site-footer">
+
+      <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com/">GitHub
+          Pages</a>.</span>
+    </footer>
+  </section>
+</body>
+
+</html>
