@@ -53,20 +53,22 @@
 
     <br><br>
     <h2 id="abstract">1. Abstract<a name="abstract"></a></h2>
-    <p> Text-to-Audio (TTA), a burgeoning AIGC application designed to generate audio from natural language description.
-      Despite growing interest, the development of robust TTA models is hindered by the scarcity of well-labeled data.
-      Besides, the noisy and inaccurate captions in large-scale, weakly labeled corpora impede the creation of
-      high-quality TTA models. To address these challenges, we introduce CosyAudio, a novel framework to leverage
-      confidence scores and synthetic captions to improve audio generation. Specifically, CosyAudio consists of two main
-      components: AudioCapTeller and an audio generator. AudioCapTeller is capable of generating audio descriptions and
-      obtaining confidence scores to assess the quality of synthetic captions. After initial training with well-labeled
-      data, AudioCapTeller's assessment capabilities are leveraged on large-scale datasets to perform high-quality
-      filtering and reinforcement learning to further improve the capability of AudioCapTeller. Additionally, the
-      trained AudioCapTeller improves caption quality by automatically generating new captions and
-      comparing them with original ones. The confidence scores from AudioCapTeller are also integrated into the audio
-      generator to facilitate quality-aware audio production. Extensive experiments conducted on open-source corpora
-      demonstrate that CosyAudio achieves more robust performance in automated audio captioning, generates
-      higher-quality audio, and generalizes well.
+    <p> Text-to-Audio (TTA) generation is an emerging area within AI-generated content (AIGC), where audio is created
+      from natural language descriptions. Despite growing interest, developing robust TTA models remains challenging due
+      to the scarcity of well-labeled datasets and the prevalence of noisy or inaccurate captions in large-scale, weakly
+      labeled corpora. To address these challenges, we propose CosyAudio, a novel framework that utilizes confidence
+      scores and synthetic captions to enhance the quality of audio generation.
+      CosyAudio consists of two core components: AudioCapTeller and an audio generator. AudioCapTeller generates
+      synthetic captions for audio and provides confidence scores to evaluate their accuracy. The audio generator uses
+      these synthetic captions and confidence scores to enable quality-aware audio generation. Additionally, we
+      introduce a self-evolving training strategy that iteratively optimizes CosyAudio across both well-labeled and
+      weakly-labeled datasets. Initially trained with well-labeled data, AudioCapTeller leverages its assessment
+      capabilities on weakly-labeled datasets for high-quality filtering and reinforcement learning, which further
+      improves its performance. The well-trained AudioCapTeller refines corpora by generating new captions and
+      confidence scores, serving for the audio generator training.
+      Extensive experiments on open-source datasets demonstrate that CosyAudio outperforms existing models in automated
+      audio captioning, generates more faithful audio, and exhibits strong generalization across diverse scenarios.
+
     </p>
 
     <br><br>
